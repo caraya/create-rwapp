@@ -1,0 +1,39 @@
+{
+  "name": "create-rwapp",
+  "version": "1.1.0",
+  "description": "A CLI to create a new web project with a specified framework.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "create-rwapp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && npm run copy-templates",
+    "copy-templates": "cp -r src/templates dist/",
+    "dev": "npm run build && node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "commander": "^12.0.0",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "@types/prompts": "^2.4.9",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "cli",
+    "vite",
+    "react",
+    "vue",
+    "lit",
+    "scaffolding"
+  ],
+  "author": "Carlos Araya <carlos.araya@gmail.com>",
+  "license": "MIT"
+}
