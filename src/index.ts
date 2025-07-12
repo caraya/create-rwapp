@@ -45,10 +45,11 @@ const main = async () => {
         .option('--prettier', 'Install Prettier')
         .option('--git', 'Initialize a git repository')
         .action(async (projectName, options) => {
-            let responses = { ...options };
+            // FIX: The projectName argument from commander must be included here.
+            let responses = { projectName, ...options };
 
             // --- Interactive prompts for missing options ---
-            if (!projectName) {
+            if (!responses.projectName) {
                 const res = await prompts({
                     type: 'text',
                     name: 'projectName',
@@ -59,7 +60,7 @@ const main = async () => {
                 responses.projectName = res.projectName;
             }
             
-            if (!options.framework) {
+            if (!responses.framework) {
                  const res = await prompts({
                     type: 'select',
                     name: 'framework',
@@ -82,43 +83,43 @@ const main = async () => {
 
             const optionalTools = await prompts([
                 {
-                    type: options.tailwind === undefined ? 'toggle' : null,
+                    type: responses.tailwind === undefined ? 'toggle' : null,
                     name: 'tailwind',
                     message: 'Add Tailwind CSS?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: options.eslint === undefined ? 'toggle' : null,
+                    type: responses.eslint === undefined ? 'toggle' : null,
                     name: 'eslint',
                     message: 'Add ESLint for code linting?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: (prev, values) => (options.eslintGoogleConfig === undefined && (options.eslint || values.eslint)) ? 'toggle' : null,
+                    type: (prev, values) => (responses.eslintGoogleConfig === undefined && (responses.eslint || values.eslint)) ? 'toggle' : null,
                     name: 'eslintGoogleConfig',
                     message: 'Use Google\'s ESLint config?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: options.vitest === undefined ? 'toggle' : null,
+                    type: responses.vitest === undefined ? 'toggle' : null,
                     name: 'vitest',
                     message: 'Add Vitest for Unit Testing?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: options.playwright === undefined ? 'toggle' : null,
+                    type: responses.playwright === undefined ? 'toggle' : null,
                     name: 'playwright',
                     message: 'Add Playwright for E2E Testing?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: options.prettier === undefined ? 'toggle' : null,
+                    type: responses.prettier === undefined ? 'toggle' : null,
                     name: 'prettier',
                     message: 'Add Prettier for code formatting?',
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
-                    type: options.git === undefined ? 'toggle' : null,
+                    type: responses.git === undefined ? 'toggle' : null,
                     name: 'git',
                     message: 'Initialize a new git repository?',
                     initial: false, active: 'Yes', inactive: 'No'
