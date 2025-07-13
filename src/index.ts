@@ -44,6 +44,7 @@ const main = async () => {
         .option('--playwright', 'Install Playwright for E2E testing')
         .option('--prettier', 'Install Prettier')
         .option('--git', 'Initialize a git repository')
+        .option('--storybook', 'Install Storybook for component development')
         .action(async (projectName, options) => {
             // FIX: The projectName argument from commander must be included here.
             let responses = { projectName, ...options };
@@ -80,6 +81,8 @@ const main = async () => {
                  if (!res.framework) process.exit(0);
                 responses.framework = res.framework;
             }
+
+            const isVanilla = responses.framework.startsWith('vanilla');
 
             const optionalTools = await prompts([
                 {
@@ -119,6 +122,12 @@ const main = async () => {
                     initial: false, active: 'Yes', inactive: 'No'
                 },
                 {
+                    type: (responses.storybook === undefined && !isVanilla) ? 'toggle' : null,
+                    name: 'storybook',
+                    message: 'Add Storybook for component development?',
+                    initial: false, active: 'Yes', inactive: 'No'
+                },
+                {
                     type: responses.git === undefined ? 'toggle' : null,
                     name: 'git',
                     message: 'Initialize a new git repository?',
@@ -137,6 +146,7 @@ const main = async () => {
                 vitest,
                 playwright,
                 prettier,
+                storybook,
                 git
             } = responses;
 
@@ -276,6 +286,57 @@ const main = async () => {
                 fs.mkdirSync(path.join(projectDir, 'tests-e2e'));
                 const exampleTest = `import { test, expect } from '@playwright/test';\n\ntest('has title', async ({ page }) => {\n  await page.goto('/');\n  await expect(page).toHaveTitle(/Vite/);\n});\n\ntest('h1 is visible', async ({ page }) => {\n  await page.goto('/');\n  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();\n});`;
                 writeToFile(path.join(projectDir, 'tests-e2e', 'example.spec.ts'), exampleTest);
+            }
+
+            if (storybook) {
+                console.log(`- Adding Storybook...`);
+                const isTs = framework.includes('ts');
+                packageJson.scripts['storybook'] = 'storybook dev -p 6006';
+                packageJson.scripts['build-storybook'] = 'storybook build';
+
+                devDependencies['storybook'] = '^9.0.0-alpha.10';
+                devDependencies['@storybook/addon-essentials'] = '^9.0.0-alpha.10';
+                devDependencies['@storybook/addon-links'] = '^9.0.0-alpha.10';
+                devDependencies['@storybook/blocks'] = '^9.0.0-alpha.10';
+
+                let storybookFramework = '';
+                let storyPath = '';
+                let storyContent = '';
+
+                if (framework.startsWith('react')) {
+                    storybookFramework = '@storybook/react-vite';
+                    devDependencies[storybookFramework] = '^9.0.0-alpha.10';
+                    devDependencies['@storybook/addon-onboarding'] = '^9.0.0-alpha.10';
+                    devDependencies['@storybook/testing-library'] = '^0.2.2';
+                    storyPath = path.join(projectDir, 'src', `stories/App.stories.${isTs ? 'tsx' : 'jsx'}`);
+                    storyContent = `import type { Meta, StoryObj } from '@storybook/react';\nimport App from '../App';\n\nconst meta: Meta<typeof App> = {\n  title: 'Example/App',\n  component: App,\n  tags: ['autodocs'],\n};\n\nexport default meta;\ntype Story = StoryObj<typeof App>;\n\nexport const Default: Story = {};`;
+                } else if (framework.startsWith('vue')) {
+                    storybookFramework = '@storybook/vue3-vite';
+                     devDependencies[storybookFramework] = '^9.0.0-alpha.10';
+                    devDependencies['@storybook/addon-onboarding'] = '^9.0.0-alpha.10';
+                    storyPath = path.join(projectDir, 'src', `stories/App.stories.${isTs ? 'ts' : 'js'}`);
+                    storyContent = `import type { Meta, StoryObj } from '@storybook/vue3';\nimport App from '../App.vue';\n\nconst meta: Meta<typeof App> = {\n  title: 'Example/App',\n  component: App,\n  tags: ['autodocs'],\n};\n\nexport default meta;\ntype Story = StoryObj<typeof App>;\n\nexport const Default: Story = {};`;
+                } else if (framework.startsWith('lit')) {
+                    storybookFramework = '@storybook/web-components-vite';
+                    devDependencies[storybookFramework] = '^9.0.0-alpha.10';
+                    devDependencies['@storybook/web-components'] = '^9.0.0-alpha.10';
+                    storyPath = path.join(projectDir, 'src', `stories/MyElement.stories.${isTs ? 'ts' : 'js'}`);
+                    storyContent = `import type { Meta, StoryObj } from '@storybook/web-components';\nimport '../my-element';\nimport { html } from 'lit';\n\nconst meta: Meta = {\n  title: 'Example/MyElement',\n  component: 'my-element',\n  tags: ['autodocs'],\n};\n\nexport default meta;\ntype Story = StoryObj;\n\nexport const Default: Story = {\n  render: () => html\`<my-element><h1>Hello, Lit Story!</h1></my-element>\`,\n};`;
+                }
+
+                fs.mkdirSync(path.join(projectDir, '.storybook'), { recursive: true });
+                if(storyPath) fs.mkdirSync(path.join(projectDir, 'src', 'stories'), { recursive: true });
+
+
+                const mainConfigContent = `import type { StorybookConfig } from '${storybookFramework}';\n\nconst config: StorybookConfig = {\n  stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],\n  addons: [\n    '@storybook/addon-links',\n    '@storybook/addon-essentials',\n  ],\n  framework: {\n    name: '${storybookFramework}',\n    options: {},\n  },\n  docs: {\n    autodocs: 'tag',\n  },\n};\nexport default config;`;
+                writeToFile(path.join(projectDir, '.storybook', `main.${isTs ? 'ts' : 'js'}`), mainConfigContent);
+
+                const previewConfigContent = `import type { Preview } from '${storybookFramework.replace('-vite', '')}';\n\nconst preview: Preview = {\n  parameters: {\n    controls: {\n      matchers: {\n        color: /(background|color)$/i,\n        date: /Date$/i,\n      },\n    },\n  },\n};\n\nexport default preview;`;
+                writeToFile(path.join(projectDir, '.storybook', `preview.${isTs ? 'ts' : 'js'}`), previewConfigContent);
+
+                if (storyPath && storyContent) {
+                    writeToFile(storyPath, storyContent);
+                }
             }
 
             if (prettier) {
