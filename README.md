@@ -59,7 +59,7 @@ npx create-rwapp <project-name> [options]
 
 | Options Flag | Description |
 | --- | --- |
-| [project-name] | The name of the new project directory.
+| [project-name] | The name of the new project directory. |
 | -f<br>--framework [type] | Specify the framework. Valid types: react-ts, react-js, vue-ts, vue-js, lit-ts, lit-js, vanilla-ts, vanilla-js. |
 | --tailwind | Add and configure Tailwind CSS. |
 | --eslint | Add and configure ESLint. |
